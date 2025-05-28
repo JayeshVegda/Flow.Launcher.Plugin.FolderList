@@ -33,23 +33,28 @@ class FolderListPlugin(FlowLauncher):
     def load_settings(self):
         try:
             if os.path.exists(self.settings_file):
-                with open(self.settings_file, 'r') as f:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
                     self.settings = json.load(f)
             else:
                 self.settings = {"keywords": {}}
                 self.save_settings()
             logging.debug(f"Loaded settings: {self.settings}")
+        except json.JSONDecodeError:
+            logging.error("Invalid settings file format")
+            self.settings = {"keywords": {}}
+            self.save_settings()
         except Exception as e:
             logging.error(f"Error loading settings: {str(e)}")
             self.settings = {"keywords": {}}
 
     def save_settings(self):
         try:
-            with open(self.settings_file, 'w') as f:
-                json.dump(self.settings, f, indent=4)
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=4, ensure_ascii=False)
             logging.debug("Settings saved successfully")
         except Exception as e:
             logging.error(f"Error saving settings: {str(e)}")
+            raise
 
     def query(self, query: str) -> List[Dict[str, Any]]:
         try:
@@ -66,18 +71,39 @@ class FolderListPlugin(FlowLauncher):
                     keyword = parts[0].strip()
                     path = parts[1].strip().strip('"\'')  # Remove quotes if present
                     
-                    if os.path.exists(path):
-                        self.set_keyword(keyword, path)
+                    if not keyword:
                         return [{
-                            "Title": "✅ Keyword saved successfully!",
-                            "SubTitle": f"Keyword: {keyword} → Path: {path}",
-                            "IcoPath": "images/app.png",
-                            "JsonRPCAction": {
-                                "method": "open_path",
-                                "parameters": [path],
-                                "dontHideAfterAction": False
-                            }
+                            "Title": "❌ Invalid keyword",
+                            "SubTitle": "Please provide a keyword",
+                            "IcoPath": "images/app.png"
                         }]
+                    
+                    if not path:
+                        return [{
+                            "Title": "❌ Invalid path",
+                            "SubTitle": "Please provide a path",
+                            "IcoPath": "images/app.png"
+                        }]
+                    
+                    if os.path.exists(path):
+                        try:
+                            self.set_keyword(keyword, path)
+                            return [{
+                                "Title": "✅ Keyword saved successfully!",
+                                "SubTitle": f"{keyword} → {path}",
+                                "IcoPath": "images/app.png",
+                                "JsonRPCAction": {
+                                    "method": "open_path",
+                                    "parameters": [path],
+                                    "dontHideAfterAction": False
+                                }
+                            }]
+                        except ValueError as e:
+                            return [{
+                                "Title": "⚠️ Cannot save keyword",
+                                "SubTitle": str(e),
+                                "IcoPath": "images/app.png"
+                            }]
                     else:
                         return [{
                             "Title": "❌ Invalid path",
@@ -97,24 +123,73 @@ class FolderListPlugin(FlowLauncher):
                 results = []
                 for keyword in matching_keywords:
                     path = self.settings["keywords"][keyword]
-                    # Get the last folder name from the path
-                    folder_name = os.path.basename(path)
+                    # Add the keyword option first with a special prefix to ensure it's first
                     results.append({
-                        "Title": f"! Open folder: {folder_name}",
-                        "SubTitle": f"Keyword: {keyword} → Full path: {path}",
+                        "Title": f"! Open {keyword}",
+                        "SubTitle": f"{path}",
                         "IcoPath": "images/folder.png",
                         "JsonRPCAction": {
                             "method": "open_path",
                             "parameters": [path],
                             "dontHideAfterAction": False
-                        }
+                        },
+                        "Score": 1000  # High score to ensure it appears first
                     })
+                    
+                    # Add the contents of the path
+                    try:
+                        folders = []
+                        files = []
+                        for item in os.listdir(path):
+                            full_path = os.path.join(path, item)
+                            is_dir = os.path.isdir(full_path)
+                            
+                            result = {
+                                "Title": item,
+                                "SubTitle": f"{'Folder' if is_dir else 'File'}: {full_path}",
+                                "IcoPath": "images/folder.png" if is_dir else "images/file.png",
+                                "JsonRPCAction": {
+                                    "method": "open_path",
+                                    "parameters": [full_path],
+                                    "dontHideAfterAction": False
+                                },
+                                "Score": 100 if is_dir else 0  # Folders get higher score than files
+                            }
+                            
+                            if is_dir:
+                                folders.append(result)
+                            else:
+                                files.append(result)
+                        
+                        # Sort folders and files alphabetically
+                        folders.sort(key=lambda x: x["Title"].lower())
+                        files.sort(key=lambda x: x["Title"].lower())
+                        
+                        # Add folders first, then files
+                        results.extend(folders)
+                        results.extend(files)
+                            
+                    except PermissionError:
+                        results.append({
+                            "Title": "⚠️ Access Denied",
+                            "SubTitle": f"Cannot access contents of {path}",
+                            "IcoPath": "images/app.png",
+                            "Score": 0
+                        })
+                    except Exception as e:
+                        logging.error(f"Error listing directory contents: {str(e)}")
+                        results.append({
+                            "Title": "⚠️ Error listing contents",
+                            "SubTitle": str(e),
+                            "IcoPath": "images/app.png",
+                            "Score": 0
+                        })
                 return results
             
             # If we get here, it's neither a path nor a matching keyword
             return [{
-                "Title": "Path or keyword not found",
-                "SubTitle": f"'{query}' is not a valid path or keyword",
+                "Title": "No matches found",
+                "SubTitle": f"'{query}' is not a valid path or keyword. Type 'keyword : path' to add a new keyword.",
                 "IcoPath": "images/app.png"
             }]
             
@@ -130,8 +205,8 @@ class FolderListPlugin(FlowLauncher):
         results = []
         for keyword, path in self.settings["keywords"].items():
             results.append({
-                "Title": f"Keyword: {keyword}",
-                "SubTitle": f"Path: {path}",
+                "Title": f"{keyword}",
+                "SubTitle": f"{path}",
                 "IcoPath": "images/app.png",
                 "JsonRPCAction": {
                     "method": "open_path",
@@ -194,6 +269,12 @@ class FolderListPlugin(FlowLauncher):
             logging.debug(f"Total results: {len(results)}")
             return results
             
+        except PermissionError:
+            return [{
+                "Title": "⚠️ Access Denied",
+                "SubTitle": f"Cannot access contents of {path}",
+                "IcoPath": "images/app.png"
+            }]
         except Exception as e:
             logging.error(f"Error listing directory: {str(e)}")
             return [{
@@ -213,6 +294,9 @@ class FolderListPlugin(FlowLauncher):
         try:
             logging.debug(f"Opening path: {path}")
             os.startfile(path)
+        except PermissionError:
+            logging.error(f"Permission denied when opening path: {path}")
+            raise
         except Exception as e:
             logging.error(f"Error opening path: {str(e)}")
             raise
@@ -220,7 +304,18 @@ class FolderListPlugin(FlowLauncher):
     def set_keyword(self, keyword: str, path: str) -> None:
         try:
             logging.debug(f"Setting keyword '{keyword}' for path: {path}")
-            self.settings["keywords"][keyword.lower()] = path
+            keyword = keyword.lower()
+            
+            # Check if keyword already exists
+            if keyword in self.settings["keywords"]:
+                raise ValueError(f"Keyword '{keyword}' already exists")
+            
+            # Check if path already exists with a different keyword
+            for existing_keyword, existing_path in self.settings["keywords"].items():
+                if existing_path == path:
+                    raise ValueError(f"Path already exists with keyword '{existing_keyword}'")
+            
+            self.settings["keywords"][keyword] = path
             self.save_settings()
         except Exception as e:
             logging.error(f"Error setting keyword: {str(e)}")
