@@ -24,12 +24,16 @@ jobs:
         pip install flowlauncher -t ./lib
         Compress-Archive -Path * -DestinationPath Flow.Launcher.Plugin.FolderList.zip -Force
         
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+      
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: 'Flow.Launcher.Plugin.FolderList.zip'
         generate_release_notes: true
-        tag_name: v1.0.0
-        name: Release v1.0.0
+        tag_name: v${{ steps.date.outputs.date }}
+        name: Release v${{ steps.date.outputs.date }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
