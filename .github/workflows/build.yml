@@ -1,0 +1,44 @@
+name: Build Plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create plugin directory
+      run: |
+        mkdir Flow.Launcher.Plugin.FolderList
+        copy main.py Flow.Launcher.Plugin.FolderList\
+        copy plugin.json Flow.Launcher.Plugin.FolderList\
+        copy README.md Flow.Launcher.Plugin.FolderList\
+        xcopy /E /I images Flow.Launcher.Plugin.FolderList\images
+        
+    - name: Create release zip
+      run: |
+        Compress-Archive -Path Flow.Launcher.Plugin.FolderList -DestinationPath Flow.Launcher.Plugin.FolderList.zip
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: Flow.Launcher.Plugin.FolderList.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

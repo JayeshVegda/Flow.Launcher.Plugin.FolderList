@@ -8,6 +8,15 @@ A simple plugin that helps you quickly access your favorite folders using custom
 2. Add a new keyword: `folder mykeyword : C:/Your/Path/Here`
 3. Access your folder: `folder mykeyword`
 
+## 📥 Installation
+
+1. Download the latest release from the [Releases page](https://github.com/JayeshVegda/Flow.Launcher.Plugin.FolderList/releases)
+2. Extract the downloaded zip file
+3. Copy the extracted folder to your Flow Launcher plugins directory:
+   - `%APPDATA%\FlowLauncher\Plugins\`
+4. Restart Flow Launcher
+5. Type `folder` to start using the plugin
+
 ## ✨ Features
 
 - 🔑 Create custom keywords for your folders
@@ -53,19 +62,6 @@ folder work : E:/Projects
 
 - Flow Launcher
 - Windows 10 or later
-
-## 📁 File Structure
-
-```
-Flow.Launcher.Plugin.FolderList/
-├── images/
-│   ├── app.png
-│   ├── folder.png
-│   └── file.png
-├── main.py
-├── plugin.json
-└── settings.json
-```
 
 ## 📝 Notes
 
