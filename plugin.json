@@ -1,0 +1,12 @@
+{
+    "ID": "Flow.Launcher.Plugin.FolderList",
+    "ActionKeyword": "folder",
+    "Name": "Folder List",
+    "Description": "List files and folders from specified directories using keywords",
+    "Author": "Your Name",
+    "Version": "1.0.0",
+    "Language": "python",
+    "Website": "https://github.com/jayeshvegda/Flow.Launcher.Plugin.FolderList",
+    "IcoPath": "images/app.png",
+    "ExecuteFileName": "main.py"
+} 
