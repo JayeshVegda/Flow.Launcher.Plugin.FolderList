@@ -1,6 +1,15 @@
-# Folder List Plugin for Flow Launcher
+# <img src="images/app.png" width="32" height="32"> Folder List Plugin for Flow Launcher
+
+<div align="center">
+
+![Flow Launcher Plugin](https://img.shields.io/badge/Flow%20Launcher-Plugin-blue)
+![Python](https://img.shields.io/badge/Python-3.9+-green)
+![Windows](https://img.shields.io/badge/Windows-10+-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 A simple plugin that helps you quickly access your favorite folders using custom keywords.
+
+</div>
 
 ## 🚀 Quick Start
 
@@ -72,4 +81,10 @@ folder work : E:/Projects
 
 ## 🤝 Contributing
 
-Feel free to submit issues and enhancement requests! 
+Feel free to submit issues and enhancement requests!
+
+<div align="center">
+
+Made with ❤️ by [Jayesh Vegda](https://github.com/JayeshVegda)
+
+</div> 
